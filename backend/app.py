@@ -53,6 +53,11 @@ def mirror(name):
 
 @app.route("/contacts", methods=['GET'])
 def get_all_contacts():
+    hobby = request.args.get('hobby')
+
+    if hobby:
+        return get_contact_from_hobby(hobby)
+
     return create_response({"contacts": db.get('contacts')})
 
 @app.route("/shows/<id>", methods=['DELETE'])
@@ -64,6 +69,74 @@ def delete_show(id):
 
 
 # TODO: Implement the rest of the API here!
+
+@app.route("/contacts/<id>", methods=['GET'])
+def get_contact_from_id(id):
+    contact = db.getById('contacts', int(id))
+    
+    if (contact == None):
+        return create_response(status=404, message="No contact of id '{id}' found.".format(id=id))
+    
+    return create_response({'contact': contact})
+
+def get_contact_from_hobby(hobby):
+    contacts = db.get('contacts')
+    target_contacts = []
+    
+    for contact in contacts:
+        if contact['hobby'] == hobby:
+            target_contacts.append(contact)
+
+    if len(target_contacts) > 0:
+        return create_response({'contacts': target_contacts})
+    
+    return create_response(status=404, message='No contact found with "{hobby}" as a hobby.'.format(hobby=hobby))
+
+@app.route('/contacts', methods=['POST'])
+def create_new_contact():
+    missing_args = []
+    json = request.json
+    
+    name ='name' in json and json['name'] or missing_args.append('name')
+    nickname = 'nickname' in json and json['nickname'] or missing_args.append('nickname')
+    hobby = 'hobby' in json and json['hobby'] or missing_args.append('hobby')
+
+    if len(missing_args) > 0:
+        return create_response(status=422, message='Missing {} for new contact'.format(missing_args))
+    
+    db.create('contacts', {"name": name, "nickname": nickname, "hobby": hobby})
+
+    return create_response(status=201)
+
+@app.route('/contacts/<id>', methods=['PUT'])
+def update_contact(id):
+    missing_args = []
+    json = request.json
+    idInt = int(id)
+
+    name = 'name' in json and json['name'] or missing_args.append('name')
+    hobby = 'hobby' in json and json['hobby'] or missing_args.append('hobby')
+
+    if len(missing_args) > 0:
+        return create_response(status=422, message='Missing {} for updating contact'.format(missing_args))
+    
+    contact = db.getById('contacts', idInt)
+    if contact == None:
+        return create_response(status=404, message="No contact of id '{id}' found.".format(id=id))
+    
+    db.updateById('contacts', idInt, {'name': name, 'hobby': hobby})
+    return create_response(status=201, data=db.getById('contacts', idInt))
+
+@app.route('/contacts/<id>', methods=['DELETE'])
+def delete_contact(id):
+    idInt = int(id)
+
+    contact = db.getById('contacts', idInt)
+    if contact == None:
+        return create_response(status=404, message="No contact of id '{id}' found.".format(id=id))
+    
+    db.deleteById('contacts', idInt)
+    return create_response(message="Contact with id '{id}' was deleted.".format(id=id))
 
 """
 ~~~~~~~~~~~~ END API ~~~~~~~~~~~~
