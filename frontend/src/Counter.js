@@ -6,8 +6,6 @@ class Counter extends Component {
     super(props);
 
     this.state = {count: props.count};
-
-    
   }
 
   // componentWillReceiveProps() found from https://stackoverflow.com/questions/32414308/updating-state-on-props-change-in-react-form
